@@ -149,7 +149,7 @@ abstract class BoundedLocalCache<K, V> extends BLCHeader.DrainStatusRef<K, V>
   /** The maximum weighted capacity of the map. */
   static final long MAXIMUM_CAPACITY = Long.MAX_VALUE - Integer.MAX_VALUE;
   /** The percent of the maximum weighted capacity dedicated to the main space. */
-  static final double PERCENT_MAIN = 0.99d;
+  static final double PERCENT_MAIN = 0.5d;
   /** The percent of the maximum weighted capacity dedicated to the main's protected space. */
   static final double PERCENT_MAIN_PROTECTED = 0.80d;
   /** The maximum time window between entry updates before the expiration must be reordered. */
