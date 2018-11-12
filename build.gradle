@@ -1,8 +1,3 @@
-apply plugin: 'com.github.mjdetullio.gradle.coverity'
-apply plugin: 'com.github.ben-manes.versions'
-apply plugin: 'com.github.kt3k.coveralls'
-apply plugin: 'com.gradle.build-scan'
-apply plugin: 'jacoco'
 
 buildscript {
   apply from: "${rootDir}/gradle/dependencies.gradle"
@@ -16,8 +11,21 @@ buildscript {
 
   dependencies {
     classpath gradlePlugins.values()
+    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.7.3"
+
   }
 }
+
+plugins {
+  id 'com.gradle.plugin-publish' version '0.10.0' apply false
+}
+
+apply plugin: 'com.github.mjdetullio.gradle.coverity'
+apply plugin: 'com.github.ben-manes.versions'
+apply plugin: 'com.github.kt3k.coveralls'
+apply plugin: 'com.gradle.build-scan'
+apply plugin: 'jacoco'
 
 buildScan {
   licenseAgree = 'yes'
@@ -46,6 +54,8 @@ subprojects {
   apply plugin: 'java'
   apply plugin: 'idea'
   apply plugin: 'osgi'
+  apply plugin: 'maven-publish'
+  apply plugin: 'com.jfrog.artifactory'
 
   apply from: "${rootDir}/gradle/publish.gradle"
   apply from: "${rootDir}/gradle/codeQuality.gradle"
@@ -62,8 +72,9 @@ subprojects {
   version.with {
     major = 2 // incompatible API changes
     minor = 7 // backwards-compatible additions
-    patch = 0 // backwards-compatible bug fixes
-    releaseBuild = rootProject.hasProperty('release')
+    patch = 314 // backwards-compatible bug fixes
+    //preRelease = 'r3'
+    releaseBuild = false
   }
   archivesBaseName = path[1..-1].replaceAll(':', '-').toLowerCase()
 
@@ -150,4 +161,83 @@ tasks.coveralls {
 
   dependsOn jacocoRootReport
   onlyIf { System.env.'CI' && !JavaVersion.current().isJava9Compatible() }
+}
+
+configure(publishedProjects) { subproject ->
+  apply plugin: 'java'
+  apply plugin: 'maven-publish'
+  apply plugin: 'com.jfrog.artifactory'
+
+//  task sourceJar(type: Jar, dependsOn: subproject.classes) {
+//    classifier = 'sources'
+//    from sourceSets.main.allSource
+//  }
+//
+//  task javadocJar(type: Jar, dependsOn: subproject.javadoc) {
+//    classifier = 'javadoc'
+//    from javadoc.destinationDir
+//  }
+//
+  publishing {
+    publications {
+      create(subproject.name, MavenPublication) {
+        from components.java
+
+        groupId subproject.group
+        artifactId subproject.name
+//        artifact tasks.sourceJar
+//        artifact tasks.javadocJar
+
+        pom {
+          name = 'Caffeine cache'
+          description = 'A high performance caching library for Java 8+'
+          url = 'https://github.com/ben-manes/caffeine'
+          inceptionYear = '2014'
+
+          scm {
+            url = 'https://github.com/ben-manes/caffeine'
+            connection = 'scm:https://ben-manes@github.com/ben-manes/caffeine.git'
+            developerConnection = 'scm:git://github.com/ben-manes/caffeine.git'
+          }
+
+          licenses {
+            license {
+              name = 'Apache License, Version 2.0'
+              url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+              distribution = 'repo'
+            }
+          }
+
+          developers {
+            developer {
+              id = 'ben-manes'
+              name = 'Ben Manes'
+              email = 'ben.manes@gmail.com'
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+artifactory {
+  publish {
+    contextUrl = 'https://ci-artifactory.corda.r3cev.com/artifactory'
+    repository {
+      repoKey = 'corda-dependencies-dev'
+      username = System.getenv('CORDA_ARTIFACTORY_USERNAME') || System.getProperty('corda.artifactory.username')
+      password = System.getenv('CORDA_ARTIFACTORY_PASSWORD') || System.getProperty('corda.artifactory.password')
+      maven = true
+    }
+
+    println "USERNAME:[${System.getenv('CORDA_ARTIFACTORY_USERNAME')}]"
+    println "PASSWORD:[${System.getenv('CORDA_ARTIFACTORY_PASSWORD')}]"
+
+    defaults {
+      if (publishedProjects.contains(project)) {
+        publications(project.name)
+      }
+    }
+  }
 }
