@@ -73,7 +73,7 @@ subprojects {
     major = 2 // incompatible API changes
     minor = 7 // backwards-compatible additions
     patch = 0 // backwards-compatible bug fixes
-    preRelease = 'r3'
+    preRelease = 'r3-fifty'
     releaseBuild = true
   }
   archivesBaseName = path[1..-1].replaceAll(':', '-').toLowerCase()
